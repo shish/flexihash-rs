@@ -6,7 +6,7 @@ edition = "2018"
 license = "MIT"
 description = "Consistent hashing following the API and compatible with flexihash-php and flexihash-py"
 homepage = "https://shish.io"
-documentation = ""
+documentation = "https://github.com/shish/flexihash-rs/"
 repository = "https://github.com/shish/flexihash-rs/"
 readme = "README.md"
 
