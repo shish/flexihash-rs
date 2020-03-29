@@ -26,7 +26,7 @@ fh.remove_target('cache-1');
 // lookup with next-best fallback (for redundant writes)
 fh.lookup_list('object', 2)  // ["cache-2", "cache-4"]
 
-# remove cache-2, expect object to hash to cache-4
+// remove cache-2, expect object to hash to cache-4
 fh.remove_target('cache-2')
 fh.lookup('object')  // "cache-4"
 ```
