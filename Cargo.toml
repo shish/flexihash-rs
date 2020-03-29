@@ -13,5 +13,5 @@ readme = "README.md"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-md5 = "*"
-crc = "*"
+md5 = "0.7.0"
+crc = "1.8.1"
