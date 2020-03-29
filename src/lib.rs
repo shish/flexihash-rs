@@ -7,12 +7,12 @@ use md5;
 
 pub trait Hasher {
     // fn hash(self, value: Union[Resource, Target]) -> Position:
-    fn hash(&self, value: String) -> Position;
+    fn hash(&self, value: Resource) -> Position;
 }
 
 struct Md5Hasher {}
 impl Hasher for Md5Hasher {
-    fn hash(&self, value: String) -> Position {
+    fn hash(&self, value: Resource) -> Position {
         let digest = md5::compute(value);
         return format!("{:x}", digest);
     }
@@ -20,7 +20,7 @@ impl Hasher for Md5Hasher {
 
 struct Crc32Hasher {}
 impl Hasher for Crc32Hasher {
-    fn hash(&self, value: String) -> Position {
+    fn hash(&self, value: Resource) -> Position {
         let digest = crc32::checksum_ieee(value.as_bytes());
         return format!("{}", digest);
     }
@@ -32,7 +32,7 @@ struct MockHasher {
 }
 #[cfg(test)]
 impl Hasher for MockHasher {
-    fn hash(&self, _value: String) -> Position {
+    fn hash(&self, _value: Resource) -> Position {
         return self._value.clone();
     }
 }
@@ -416,7 +416,14 @@ mod flexihash_tests {
         assert_eq!(targets.len(), 2);
         assert_ne!(targets[0], targets[1]);
     }
-/*
+
+    #[test]
+    fn get_multiple_targets_needing_to_loop_to_start() {
+        let mut mock_hasher = MockHasher::new();
+        mock_hasher.set_hash_value(10);
+    }
+
+    /*
     #[test]
     fn get_multiple_targets_needing_to_loop_to_start() {
         let mut mock_hasher = MockHasher::new();
