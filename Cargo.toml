@@ -3,6 +3,12 @@ name = "flexihash"
 version = "0.1.0"
 authors = ["Shish <shish@shishnet.org>"]
 edition = "2018"
+license = "MIT"
+description = "Consistent hashing following the API and compatible with flexihash-php and flexihash-py"
+homepage = "https://shish.io"
+documentation = ""
+repository = "https://github.com/shish/flexihash-rs/"
+readme = "README.md"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
