@@ -3,8 +3,8 @@ use std::collections::{BTreeMap, HashMap};
 mod consts;
 mod hashers;
 
-use consts::{Position,Target};
-use hashers::{Hasher, Crc32Hasher};
+use consts::{Position, Target};
+use hashers::{Crc32Hasher, Hasher};
 
 pub struct Flexihash<'a> {
     replicas: u32,
@@ -21,11 +21,11 @@ impl<'a> Flexihash<'a> {
             target_to_positions: HashMap::new(),
         };
     }
-    
+
     pub fn set_hasher(&mut self, hasher: &'a dyn Hasher) {
         self.hasher = hasher;
     }
-    
+
     pub fn set_replicas(&mut self, replicas: u32) {
         self.replicas = replicas;
     }
@@ -275,10 +275,7 @@ mod flexihash_tests {
         fh.add_targets(targets.clone());
 
         for i in 1..10 {
-            assert_eq!(
-                targets.contains(&fh.lookup(format!("r{}", i))),
-                true
-            )
+            assert_eq!(targets.contains(&fh.lookup(format!("r{}", i))), true)
         }
     }
 
@@ -367,22 +364,22 @@ mod flexihash_tests {
         let mut fh = Flexihash::new();
         fh.set_replicas(1);
 
-        fh.set_hasher(&MockHasher {value: "10"});
+        fh.set_hasher(&MockHasher { value: "10" });
         fh.add_target("t1", 1);
 
-        fh.set_hasher(&MockHasher {value: "20"});
+        fh.set_hasher(&MockHasher { value: "20" });
         fh.add_target("t2", 1);
 
-        fh.set_hasher(&MockHasher {value: "30"});
+        fh.set_hasher(&MockHasher { value: "30" });
         fh.add_target("t3", 1);
 
-        fh.set_hasher(&MockHasher {value: "40"});
+        fh.set_hasher(&MockHasher { value: "40" });
         fh.add_target("t4", 1);
 
-        fh.set_hasher(&MockHasher {value: "50"});
+        fh.set_hasher(&MockHasher { value: "50" });
         fh.add_target("t5", 1);
 
-        fh.set_hasher(&MockHasher {value: "35"});
+        fh.set_hasher(&MockHasher { value: "35" });
         let targets = fh.lookup_list("resource", 4);
 
         assert_eq!(targets, ["t4", "t5", "t1", "t2"]);
@@ -393,16 +390,16 @@ mod flexihash_tests {
         let mut fh = Flexihash::new();
         fh.set_replicas(1);
 
-        fh.set_hasher(&MockHasher {value: "10"});
+        fh.set_hasher(&MockHasher { value: "10" });
         fh.add_target("t1", 1);
 
-        fh.set_hasher(&MockHasher {value: "20"});
+        fh.set_hasher(&MockHasher { value: "20" });
         fh.add_target("t2", 1);
 
-        fh.set_hasher(&MockHasher {value: "30"});
+        fh.set_hasher(&MockHasher { value: "30" });
         fh.add_target("t3", 1);
 
-        fh.set_hasher(&MockHasher {value: "99"});
+        fh.set_hasher(&MockHasher { value: "99" });
         let targets = fh.lookup_list("resource", 2);
 
         assert_eq!(targets, ["t1", "t2"]);
@@ -413,16 +410,16 @@ mod flexihash_tests {
         let mut fh = Flexihash::new();
         fh.set_replicas(1);
 
-        fh.set_hasher(&MockHasher {value: "10"});
+        fh.set_hasher(&MockHasher { value: "10" });
         fh.add_target("t1", 1);
 
-        fh.set_hasher(&MockHasher {value: "20"});
+        fh.set_hasher(&MockHasher { value: "20" });
         fh.add_target("t2", 1);
 
-        fh.set_hasher(&MockHasher {value: "30"});
+        fh.set_hasher(&MockHasher { value: "30" });
         fh.add_target("t3", 1);
 
-        fh.set_hasher(&MockHasher {value: "15"});
+        fh.set_hasher(&MockHasher { value: "15" });
         let targets = fh.lookup_list("resource", 2);
 
         assert_eq!(targets, ["t2", "t3"]);
@@ -433,16 +430,16 @@ mod flexihash_tests {
         let mut fh = Flexihash::new();
         fh.set_replicas(1);
 
-        fh.set_hasher(&MockHasher {value: "10"});
+        fh.set_hasher(&MockHasher { value: "10" });
         fh.add_target("t1", 1);
 
-        fh.set_hasher(&MockHasher {value: "20"});
+        fh.set_hasher(&MockHasher { value: "20" });
         fh.add_target("t2", 1);
 
-        fh.set_hasher(&MockHasher {value: "30"});
+        fh.set_hasher(&MockHasher { value: "30" });
         fh.add_target("t3", 1);
 
-        fh.set_hasher(&MockHasher {value: "15"});
+        fh.set_hasher(&MockHasher { value: "15" });
 
         assert_eq!(fh.lookup("resource"), "t2");
         assert_eq!(fh.lookup_list("resource", 3), ["t2", "t3", "t1"]);

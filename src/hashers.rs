@@ -1,7 +1,7 @@
 use crc::crc32;
 use md5;
 
-use crate::consts::{Position,Resource};
+use crate::consts::{Position, Resource};
 
 /**
  * Generic Hasher interface
@@ -9,7 +9,6 @@ use crate::consts::{Position,Resource};
 pub trait Hasher {
     fn hash(&self, value: Resource) -> Position;
 }
-
 
 /**
  * MD5 Hasher
@@ -39,7 +38,6 @@ fn test_md5() {
         "29e4b66fa8076de4d7a26c727b8dbdfa"
     );
 }
-
 
 /**
  * CRC32 Hasher
