@@ -11,6 +11,7 @@ pub struct Flexihash<'a> {
     replicas: u32,
     hasher: &'a dyn Hasher,
     position_to_target: BTreeMap<Position, Target>,
+    sorted_position_to_target: Vec<(Position, Target)>,
     target_to_positions: HashMap<Target, Vec<Position>>,
 }
 impl<'a> Flexihash<'a> {
@@ -19,6 +20,7 @@ impl<'a> Flexihash<'a> {
             hasher: &Crc32Hasher {},
             replicas: 64,
             position_to_target: BTreeMap::new(),
+            sorted_position_to_target: Vec::new(),
             target_to_positions: HashMap::new(),
         };
     }
@@ -45,6 +47,10 @@ impl<'a> Flexihash<'a> {
             self.position_to_target
                 .insert(position.clone(), target.clone());
         }
+        self.sorted_position_to_target = Vec::new();
+        for (k, v) in self.position_to_target.iter() {
+            self.sorted_position_to_target.push((k.clone(), v.clone()));
+        }
         self.target_to_positions.insert(target.clone(), positions);
         return self;
     }
@@ -61,6 +67,10 @@ impl<'a> Flexihash<'a> {
         if let Some(position_list) = self.target_to_positions.get(target.as_str()) {
             for position in position_list {
                 self.position_to_target.remove(position);
+            }
+            self.sorted_position_to_target = Vec::new();
+            for (k, v) in self.position_to_target.iter() {
+                self.sorted_position_to_target.push((k.clone(), v.clone()));
             }
             self.target_to_positions.remove(target.as_str());
         } else {
@@ -104,28 +114,21 @@ impl<'a> Flexihash<'a> {
         }
 
         let resource_position = self.hasher.hash(resource);
-
-        // let positions: Vec<&Position> = self.position_to_target.keys().cloned().collect();
-        // let offset = positions.binary_search(resource_position).expect("Didn't find position");
-        // let offset = bisect.bisect_left(ptts, (resource_position, ""));
         let n_targets = self.target_to_positions.len();
 
         let mut results: Vec<Target> = Vec::new();
-        for (position, target) in self.position_to_target.iter() {
-            if *position > resource_position {
+        let s = String::new();
+        let offset = match self.sorted_position_to_target.binary_search(&(resource_position, s)) {
+            Ok(pos) => pos,
+            Err(pos) => pos,
+        };
+        for i in (offset .. self.sorted_position_to_target.len()).chain(0 .. offset) {
+            if let Some((_, target)) = self.sorted_position_to_target.get(i) {
                 if !results.contains(target) {
                     results.push(target.clone());
                     if results.len() == requested_count as usize || results.len() == n_targets {
                         return results;
                     }
-                }
-            }
-        }
-        for (_position, target) in self.position_to_target.iter() {
-            if !results.contains(target) {
-                results.push(target.clone());
-                if results.len() == requested_count as usize || results.len() == n_targets {
-                    return results;
                 }
             }
         }
@@ -457,33 +460,16 @@ mod flexihash_tests {
     }
 }
 
-#[cfg(test)]
-mod benchmarks {
-    #[cfg(test)]
-    use crate::Flexihash;
-
-    #[test]
-    fn lookup_one_of_two() {
-        let mut fh = Flexihash::new();
-        fh.add_target("olive", 9);
-        fh.add_target("acacia", 10);
-
-        for n in 0..10000 {
-            fh.lookup(format!("foobar{}", n));
-        }
-    }
-}
-
 /*
 extern crate test;
 
 #[cfg(test)]
-mod flexihash_bench {
+mod lookup_list_bench {
     use super::*;
     use test::Bencher;
 
     #[bench]
-    fn lookup_one_of_one(b: &mut Bencher) {
+    fn one_of_one(b: &mut Bencher) {
         let mut fh = Flexihash::new();
         fh.add_target("olive", 10);
 
@@ -491,7 +477,7 @@ mod flexihash_bench {
     }
 
     #[bench]
-    fn lookup_one_of_two(b: &mut Bencher) {
+    fn one_of_two(b: &mut Bencher) {
         let mut fh = Flexihash::new();
         fh.add_target("olive", 10);
         fh.add_target("acacia", 10);
@@ -500,7 +486,7 @@ mod flexihash_bench {
     }
 
     #[bench]
-    fn lookup_two_of_two(b: &mut Bencher) {
+    fn two_of_two(b: &mut Bencher) {
         let mut fh = Flexihash::new();
         fh.add_target("olive", 10);
         fh.add_target("acacia", 10);
@@ -509,12 +495,68 @@ mod flexihash_bench {
     }
 
     #[bench]
-    fn lookup_three_of_two(b: &mut Bencher) {
+    fn three_of_two(b: &mut Bencher) {
         let mut fh = Flexihash::new();
         fh.add_target("olive", 10);
         fh.add_target("acacia", 10);
 
         b.iter(|| fh.lookup_list("foobar", 3));
+    }
+}
+
+#[cfg(test)]
+mod flexihash_bench {
+    use super::*;
+    use test::Bencher;
+
+    #[bench]
+    fn init(b: &mut Bencher) {
+        b.iter(|| {
+            Flexihash::new()
+        });
+    }
+}
+
+#[cfg(test)]
+mod add_target_bench {
+    use super::*;
+    use test::Bencher;
+
+    #[bench]
+    fn one(b: &mut Bencher) {
+        b.iter(|| {
+            let mut fh = Flexihash::new();
+            fh.add_target("olive", 10);
+        });
+    }
+
+    #[bench]
+    fn two(b: &mut Bencher) {
+        b.iter(|| {
+            let mut fh = Flexihash::new();
+            fh.add_target("olive", 10);
+            fh.add_target("acacia", 10);
+        });
+    }
+
+    #[bench]
+    fn three(b: &mut Bencher) {
+        b.iter(|| {
+            let mut fh = Flexihash::new();
+            fh.add_target("olive", 10);
+            fh.add_target("acacia", 10);
+            fh.add_target("rose", 10);
+        });
+    }
+
+    #[bench]
+    fn many(b: &mut Bencher) {
+        b.iter(|| {
+            let mut fh = Flexihash::new();
+            for n in 0..100 {
+                fh.add_target(format!("olive{}", n), 10);
+            }
+        });
     }
 }
 */
