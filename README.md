@@ -1,6 +1,8 @@
 flexihash-rs
 ============
 
+![Unit Tests](https://github.com/shish/flexihash-rs/workflows/Unit%20Tests/badge.svg)
+
 A rust port of https://github.com/pda/flexihash , aiming for 1:1 compatibility
 
 
