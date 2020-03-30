@@ -118,11 +118,14 @@ impl<'a> Flexihash<'a> {
 
         let mut results: Vec<Target> = Vec::new();
         let s = String::new();
-        let offset = match self.sorted_position_to_target.binary_search(&(resource_position, s)) {
+        let offset = match self
+            .sorted_position_to_target
+            .binary_search(&(resource_position, s))
+        {
             Ok(pos) => pos,
             Err(pos) => pos,
         };
-        for i in (offset .. self.sorted_position_to_target.len()).chain(0 .. offset) {
+        for i in (offset..self.sorted_position_to_target.len()).chain(0..offset) {
             if let Some((_, target)) = self.sorted_position_to_target.get(i) {
                 if !results.contains(target) {
                     results.push(target.clone());
@@ -143,22 +146,48 @@ impl<'a> Flexihash<'a> {
 mod compat_tests {
     #[cfg(test)]
     use crate::Flexihash;
+    use md5;
+    use std::collections::HashMap;
 
     #[test]
     fn same_results_as_original() {
+        // generate lots of test cases, and use md5 to be "random" in case
+        // a fast hasher (eg crc) doesn't distribute data well
         let mut fh = Flexihash::new();
+        let mut results = HashMap::new();
 
-        fh.add_targets(vec![
-            String::from("a"),
-            String::from("b"),
-            String::from("c"),
-            String::from("d"),
-        ]);
-        fh.remove_target(String::from("d"));
+        for n in vec!["a", "b", "c", "d", "e", "f", "g", "h", "i", "j"].iter() {
+            let target = format!("{:032x}", md5::compute(n.to_string()));
+            fh.add_target(target.clone(), 1);
+            results.insert(target, 0);
+        }
 
-        assert_eq!(fh.lookup(String::from("1")), "a");
-        assert_eq!(fh.lookup(String::from("2")), "b");
-        assert_eq!(fh.lookup(String::from("3")), "a");
+        for n in 0..1000 {
+            let target = format!("{:032x}", md5::compute(n.to_string()));
+            let position = fh.lookup(target);
+            match results.get_mut(&position) {
+                Some(v) => {
+                    *v += 1;
+                }
+                None => {
+                    results.insert(position.clone(), 1);
+                }
+            };
+        }
+
+        let mut expected = HashMap::new();
+        expected.insert("0cc175b9c0f1b6a831c399e269772661".to_string(), 105);
+        expected.insert("2510c39011c5be704182423e3a695e91".to_string(), 54);
+        expected.insert("363b122c528f54df4a0446b6bab05515".to_string(), 113);
+        expected.insert("4a8a08f09d37b73795649038408b5f33".to_string(), 119);
+        expected.insert("8277e0910d750195b448797616e091ad".to_string(), 168);
+        expected.insert("865c0c0b4ab0e063e5caa3387c1a8741".to_string(), 74);
+        expected.insert("8fa14cdd754f91cc6554c9e71929cce7".to_string(), 94);
+        expected.insert("92eb5ffee6ae2fec3ad71c777531578f".to_string(), 63);
+        expected.insert("b2f5ff47436671b6e533d8dc3614845d".to_string(), 124);
+        expected.insert("e1671797c52e15f763380b45e841ec32".to_string(), 86);
+
+        assert_eq!(results, expected)
     }
 }
 
