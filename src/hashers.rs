@@ -17,7 +17,7 @@ pub struct Md5Hasher {}
 impl Hasher for Md5Hasher {
     fn hash(&self, value: Resource) -> Position {
         let digest = md5::compute(value);
-        return format!("{:x}", digest);
+        return format!("{:032x}", digest);
     }
 }
 
@@ -46,7 +46,7 @@ pub struct Crc32Hasher {}
 impl Hasher for Crc32Hasher {
     fn hash(&self, value: Resource) -> Position {
         let digest = crc32::checksum_ieee(value.as_bytes());
-        return format!("{}", digest);
+        return format!("{:10}", digest);
     }
 }
 
