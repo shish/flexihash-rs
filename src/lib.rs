@@ -1,3 +1,4 @@
+// #![feature(test)]
 use std::collections::{BTreeMap, HashMap};
 
 mod consts;
@@ -456,9 +457,24 @@ mod flexihash_tests {
     }
 }
 
-/*
-#![feature(test)]
+#[cfg(test)]
+mod benchmarks {
+    #[cfg(test)]
+    use crate::Flexihash;
 
+    #[test]
+    fn lookup_one_of_two() {
+        let mut fh = Flexihash::new();
+        fh.add_target("olive", 9);
+        fh.add_target("acacia", 10);
+
+        for n in 0..10000 {
+            fh.lookup(format!("foobar{}", n));
+        }
+    }
+}
+
+/*
 extern crate test;
 
 #[cfg(test)]
@@ -467,12 +483,38 @@ mod flexihash_bench {
     use test::Bencher;
 
     #[bench]
-    fn bench_lookup(b: &mut Bencher) {
+    fn lookup_one_of_one(b: &mut Bencher) {
         let mut fh = Flexihash::new();
-        fh.add_target("olive", 9);
+        fh.add_target("olive", 10);
+
+        b.iter(|| fh.lookup_list("foobar", 1));
+    }
+
+    #[bench]
+    fn lookup_one_of_two(b: &mut Bencher) {
+        let mut fh = Flexihash::new();
+        fh.add_target("olive", 10);
         fh.add_target("acacia", 10);
 
-        b.iter(|| fh.lookup("foobar"));
+        b.iter(|| fh.lookup_list("foobar", 1));
+    }
+
+    #[bench]
+    fn lookup_two_of_two(b: &mut Bencher) {
+        let mut fh = Flexihash::new();
+        fh.add_target("olive", 10);
+        fh.add_target("acacia", 10);
+
+        b.iter(|| fh.lookup_list("foobar", 2));
+    }
+
+    #[bench]
+    fn lookup_three_of_two(b: &mut Bencher) {
+        let mut fh = Flexihash::new();
+        fh.add_target("olive", 10);
+        fh.add_target("acacia", 10);
+
+        b.iter(|| fh.lookup_list("foobar", 3));
     }
 }
 */

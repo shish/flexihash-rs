@@ -58,3 +58,24 @@ fn test_crc32() {
     assert_eq!(hasher.hash(String::from("test")), "3632233996");
     assert_eq!(hasher.hash(String::from("different")), "1812431075");
 }
+
+/*
+#[cfg(test)]
+mod benchmarks {
+    extern crate test;
+    use super::*;
+    use test::Bencher;
+
+    #[bench]
+    fn bench_crc32(b: &mut Bencher) {
+        let hasher = Crc32Hasher {};
+        b.iter(|| hasher.hash(String::from("test")));
+    }
+
+    #[bench]
+    fn bench_md5(b: &mut Bencher) {
+        let hasher = Md5Hasher {};
+        b.iter(|| hasher.hash(String::from("test")));
+    }
+}
+*/
