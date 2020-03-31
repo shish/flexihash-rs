@@ -1,23 +1,85 @@
 // #![feature(test)]
+use crc::crc32;
+use md5;
 use std::collections::{BTreeMap, HashMap};
 
-mod consts;
-mod hashers;
+pub type Position = String;
+pub type Target = String;
+pub type Resource = String;
 
-use consts::{Position, Target};
-use hashers::{Crc32Hasher, Hasher};
+pub enum Hasher {
+    Crc32,
+    Md5,
+    Mock(String),
+}
 
-pub struct Flexihash<'a> {
+pub fn hash<S: Into<String>>(hasher: &Hasher, value: S) -> Position {
+    let value = value.into();
+    return match hasher {
+        Hasher::Crc32 => format!("{:10}", crc32::checksum_ieee(value.as_bytes())),
+        Hasher::Md5 => format!("{:032x}", md5::compute(value)),
+        Hasher::Mock(val) => val.to_string(),
+    };
+}
+
+#[cfg(test)]
+mod hasher_tests {
+    use super::*;
+
+    #[test]
+    fn test_md5() {
+        assert_eq!(
+            hash(&Hasher::Md5, "test"),
+            "098f6bcd4621d373cade4e832627b4f6"
+        );
+        assert_eq!(
+            hash(&Hasher::Md5, "test"),
+            "098f6bcd4621d373cade4e832627b4f6"
+        );
+        assert_eq!(
+            hash(&Hasher::Md5, "different"),
+            "29e4b66fa8076de4d7a26c727b8dbdfa"
+        );
+    }
+
+    #[test]
+    fn test_crc32() {
+        assert_eq!(hash(&Hasher::Crc32, String::from("test")), "3632233996");
+        assert_eq!(hash(&Hasher::Crc32, String::from("test")), "3632233996");
+        assert_eq!(hash(&Hasher::Crc32, String::from("different")), "1812431075");
+    }
+}
+
+/*
+#[cfg(test)]
+mod hasher_benchmarks {
+    extern crate test;
+    use super::*;
+    use test::Bencher;
+
+    #[bench]
+    fn bench_crc32(b: &mut Bencher) {
+        b.iter(|| hash(&Hasher::Crc32, String::from("test")));
+    }
+
+    #[bench]
+    fn bench_md5(b: &mut Bencher) {
+        b.iter(|| hash(&Hasher::Md5, String::from("test")));
+    }
+}
+*/
+
+pub struct Flexihash {
     replicas: u32,
-    hasher: &'a dyn Hasher,
+    hasher: Hasher,
     position_to_target: BTreeMap<Position, Target>,
     sorted_position_to_target: Vec<(Position, Target)>,
     target_to_positions: HashMap<Target, Vec<Position>>,
 }
-impl<'a> Flexihash<'a> {
-    pub fn new() -> Flexihash<'static> {
+impl Flexihash {
+    pub fn new() -> Flexihash {
         return Flexihash {
-            hasher: &Crc32Hasher {},
+            hasher: Hasher::Crc32,
             replicas: 64,
             position_to_target: BTreeMap::new(),
             sorted_position_to_target: Vec::new(),
@@ -25,7 +87,7 @@ impl<'a> Flexihash<'a> {
         };
     }
 
-    pub fn set_hasher(&mut self, hasher: &'a dyn Hasher) {
+    pub fn set_hasher(&mut self, hasher: Hasher) {
         self.hasher = hasher;
     }
 
@@ -42,12 +104,12 @@ impl<'a> Flexihash<'a> {
         for i in 0..self.replicas * weight {
             let t = target.clone();
             let sub_target = format!("{}{}", t, i);
-            let position = self.hasher.hash(sub_target);
+            let position = hash(&self.hasher, sub_target);
             positions.push(position.clone());
             self.position_to_target
                 .insert(position.clone(), target.clone());
         }
-        self.sorted_position_to_target = Vec::new();
+        self.sorted_position_to_target = Vec::with_capacity(self.position_to_target.len());
         for (k, v) in self.position_to_target.iter() {
             self.sorted_position_to_target.push((k.clone(), v.clone()));
         }
@@ -113,7 +175,7 @@ impl<'a> Flexihash<'a> {
             }
         }
 
-        let resource_position = self.hasher.hash(resource);
+        let resource_position = hash(&self.hasher, resource);
         let n_targets = self.target_to_positions.len();
 
         let mut results: Vec<Target> = Vec::new();
@@ -197,16 +259,6 @@ mod compat_tests {
 #[cfg(test)]
 mod flexihash_tests {
     use super::*;
-    use crate::consts::Resource;
-
-    pub struct MockHasher {
-        pub value: &'static str,
-    }
-    impl Hasher for MockHasher {
-        fn hash(&self, _value: Resource) -> Position {
-            return self.value.to_string();
-        }
-    }
 
     #[test]
     #[should_panic(expected = "No targets set")]
@@ -397,22 +449,22 @@ mod flexihash_tests {
         let mut fh = Flexihash::new();
         fh.set_replicas(1);
 
-        fh.set_hasher(&MockHasher { value: "10" });
+        fh.set_hasher(Hasher::Mock("10".to_string()));
         fh.add_target("t1", 1);
 
-        fh.set_hasher(&MockHasher { value: "20" });
+        fh.set_hasher(Hasher::Mock("20".to_string()));
         fh.add_target("t2", 1);
 
-        fh.set_hasher(&MockHasher { value: "30" });
+        fh.set_hasher(Hasher::Mock("30".to_string()));
         fh.add_target("t3", 1);
 
-        fh.set_hasher(&MockHasher { value: "40" });
+        fh.set_hasher(Hasher::Mock("40".to_string()));
         fh.add_target("t4", 1);
 
-        fh.set_hasher(&MockHasher { value: "50" });
+        fh.set_hasher(Hasher::Mock("50".to_string()));
         fh.add_target("t5", 1);
 
-        fh.set_hasher(&MockHasher { value: "35" });
+        fh.set_hasher(Hasher::Mock("35".to_string()));
         let targets = fh.lookup_list("resource", 4);
 
         assert_eq!(targets, ["t4", "t5", "t1", "t2"]);
@@ -423,16 +475,16 @@ mod flexihash_tests {
         let mut fh = Flexihash::new();
         fh.set_replicas(1);
 
-        fh.set_hasher(&MockHasher { value: "10" });
+        fh.set_hasher(Hasher::Mock("10".to_string()));
         fh.add_target("t1", 1);
 
-        fh.set_hasher(&MockHasher { value: "20" });
+        fh.set_hasher(Hasher::Mock("20".to_string()));
         fh.add_target("t2", 1);
 
-        fh.set_hasher(&MockHasher { value: "30" });
+        fh.set_hasher(Hasher::Mock("30".to_string()));
         fh.add_target("t3", 1);
 
-        fh.set_hasher(&MockHasher { value: "99" });
+        fh.set_hasher(Hasher::Mock("99".to_string()));
         let targets = fh.lookup_list("resource", 2);
 
         assert_eq!(targets, ["t1", "t2"]);
@@ -443,16 +495,16 @@ mod flexihash_tests {
         let mut fh = Flexihash::new();
         fh.set_replicas(1);
 
-        fh.set_hasher(&MockHasher { value: "10" });
+        fh.set_hasher(Hasher::Mock("10".to_string()));
         fh.add_target("t1", 1);
 
-        fh.set_hasher(&MockHasher { value: "20" });
+        fh.set_hasher(Hasher::Mock("20".to_string()));
         fh.add_target("t2", 1);
 
-        fh.set_hasher(&MockHasher { value: "30" });
+        fh.set_hasher(Hasher::Mock("30".to_string()));
         fh.add_target("t3", 1);
 
-        fh.set_hasher(&MockHasher { value: "15" });
+        fh.set_hasher(Hasher::Mock("15".to_string()));
         let targets = fh.lookup_list("resource", 2);
 
         assert_eq!(targets, ["t2", "t3"]);
@@ -463,16 +515,16 @@ mod flexihash_tests {
         let mut fh = Flexihash::new();
         fh.set_replicas(1);
 
-        fh.set_hasher(&MockHasher { value: "10" });
+        fh.set_hasher(Hasher::Mock("10".to_string()));
         fh.add_target("t1", 1);
 
-        fh.set_hasher(&MockHasher { value: "20" });
+        fh.set_hasher(Hasher::Mock("20".to_string()));
         fh.add_target("t2", 1);
 
-        fh.set_hasher(&MockHasher { value: "30" });
+        fh.set_hasher(Hasher::Mock("30".to_string()));
         fh.add_target("t3", 1);
 
-        fh.set_hasher(&MockHasher { value: "15" });
+        fh.set_hasher(Hasher::Mock("15".to_string()));
 
         assert_eq!(fh.lookup("resource"), "t2");
         assert_eq!(fh.lookup_list("resource", 3), ["t2", "t3", "t1"]);
@@ -582,7 +634,7 @@ mod add_target_bench {
     fn many(b: &mut Bencher) {
         b.iter(|| {
             let mut fh = Flexihash::new();
-            for n in 0..100 {
+            for n in 0..10 {
                 fh.add_target(format!("olive{}", n), 10);
             }
         });
