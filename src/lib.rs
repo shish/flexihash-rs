@@ -7,6 +7,7 @@ pub type Position = String;
 pub type Target = String;
 pub type Resource = String;
 
+#[derive(Debug)]
 pub enum Hasher {
     Crc32,
     Md5,
@@ -23,7 +24,7 @@ pub fn hash<S: Into<String>>(hasher: &Hasher, value: S) -> Position {
 }
 
 #[cfg(test)]
-mod hasher_tests {
+mod test_hashers {
     use super::*;
 
     #[test]
@@ -46,7 +47,10 @@ mod hasher_tests {
     fn test_crc32() {
         assert_eq!(hash(&Hasher::Crc32, String::from("test")), "3632233996");
         assert_eq!(hash(&Hasher::Crc32, String::from("test")), "3632233996");
-        assert_eq!(hash(&Hasher::Crc32, String::from("different")), "1812431075");
+        assert_eq!(
+            hash(&Hasher::Crc32, String::from("different")),
+            "1812431075"
+        );
     }
 }
 
@@ -69,6 +73,7 @@ mod hasher_benchmarks {
 }
 */
 
+#[derive(Debug)]
 pub struct Flexihash {
     replicas: u32,
     hasher: Hasher,
@@ -76,6 +81,10 @@ pub struct Flexihash {
     sorted_position_to_target: Vec<(Position, Target)>,
     target_to_positions: HashMap<Target, Vec<Position>>,
 }
+
+/*
+ * Basic methods
+ */
 impl Flexihash {
     pub fn new() -> Flexihash {
         return Flexihash {
@@ -94,7 +103,44 @@ impl Flexihash {
     pub fn set_replicas(&mut self, replicas: u32) {
         self.replicas = replicas;
     }
+}
 
+/*
+ * Formatting
+ */
+use std::fmt;
+
+impl fmt::Display for Flexihash {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Flexihash({:?})", self.target_to_positions.keys())
+    }
+}
+
+#[cfg(test)]
+mod test_formatting {
+    use super::*;
+
+    #[test]
+    fn to_string() {
+        let mut fh = Flexihash::new();
+        fh.add_target("foo", 2);
+        fh.add_target("bar", 4);
+        assert_eq!(fh.to_string(), "Flexihash([\"bar\", \"foo\"])");
+    }
+
+    #[test]
+    fn debug() {
+        let mut fh = Flexihash::new();
+        fh.add_target("foo", 2);
+        fh.add_target("bar", 4);
+        assert_eq!(format!("{:?}", fh).to_string().len() > 10, true);
+    }
+}
+
+/*
+ * Add / remove targets
+ */
+impl Flexihash {
     pub fn add_target<S: Into<String>>(&mut self, target: S, weight: u32) -> &Flexihash {
         let target = target.into();
         if self.target_to_positions.contains_key(&target) {
@@ -150,7 +196,68 @@ impl Flexihash {
         targets.sort();
         return targets;
     }
+}
 
+#[cfg(test)]
+mod test_add_remove {
+    use super::*;
+
+    #[test]
+    fn get_all_targets_empty() {
+        let fh = Flexihash::new();
+        assert_eq!(fh.get_all_targets().len(), 0);
+    }
+
+    #[test]
+    #[should_panic]
+    fn add_target_throws_exception_on_duplicate_target() {
+        let mut fh = Flexihash::new();
+        fh.add_target("t-a", 1);
+        fh.add_target("t-a", 1);
+    }
+
+    #[test]
+    fn add_target_and_get_all_targets() {
+        let mut fh = Flexihash::new();
+        fh.add_target("t-a", 1);
+        fh.add_target("t-b", 1);
+        fh.add_target("t-c", 1);
+
+        assert_eq!(fh.get_all_targets(), ["t-a", "t-b", "t-c"]);
+    }
+
+    #[test]
+    fn add_targets_and_get_all_targets() {
+        let targets = vec!["t-a", "t-b", "t-c"];
+
+        let mut fh = Flexihash::new();
+        fh.add_targets(targets.clone());
+        assert_eq!(fh.get_all_targets(), targets);
+    }
+
+    #[test]
+    fn remove_target() {
+        let mut fh = Flexihash::new();
+        fh.add_target("t-a", 1);
+        fh.add_target("t-b", 1);
+        fh.add_target("t-c", 1);
+        fh.remove_target("t-b");
+
+        assert_eq!(fh.get_all_targets(), ["t-a", "t-c"]);
+    }
+
+    #[test]
+    #[should_panic(expected = "Target 'not-there' does not exist")]
+    fn remove_target_fails_on_missing_target() {
+        let mut fh = Flexihash::new();
+        fh.remove_target("not-there");
+    }
+}
+
+/*
+ * Lookups
+ */
+impl Flexihash {
     pub fn lookup<S: Into<String>>(&self, resource: S) -> Target {
         let targets = self.lookup_list(resource, 1);
         if let Some(target) = targets.get(0) {
@@ -205,7 +312,7 @@ impl Flexihash {
  * Ensure the Flexihash class gives the same results as the original code
  */
 #[cfg(test)]
-mod compat_tests {
+mod test_compat {
     #[cfg(test)]
     use crate::Flexihash;
     use md5;
@@ -253,11 +360,8 @@ mod compat_tests {
     }
 }
 
-/**
- * Check individual Flexihash methods
- */
 #[cfg(test)]
-mod flexihash_tests {
+mod test_lookups {
     use super::*;
 
     #[test]
@@ -287,57 +391,6 @@ mod flexihash_tests {
         assert_eq!(result.len(), 2); // but 80726 isn't reachable since it was clobbered
         assert_eq!(result.contains(&String::from("x")), true); // all that's left is x
         assert_eq!(result.contains(&String::from("y")), true); // and y
-    }
-
-    #[test]
-    fn get_all_targets_empty() {
-        let fh = Flexihash::new();
-        assert_eq!(fh.get_all_targets().len(), 0);
-    }
-
-    #[test]
-    #[should_panic]
-    fn add_target_throws_exception_on_duplicate_target() {
-        let mut fh = Flexihash::new();
-        fh.add_target("t-a", 1);
-        fh.add_target("t-a", 1);
-    }
-
-    #[test]
-    fn add_target_and_get_all_targets() {
-        let mut fh = Flexihash::new();
-        fh.add_target("t-a", 1);
-        fh.add_target("t-b", 1);
-        fh.add_target("t-c", 1);
-
-        assert_eq!(fh.get_all_targets(), ["t-a", "t-b", "t-c"]);
-    }
-
-    #[test]
-    fn add_targets_and_get_all_targets() {
-        let targets = vec!["t-a", "t-b", "t-c"];
-
-        let mut fh = Flexihash::new();
-        fh.add_targets(targets.clone());
-        assert_eq!(fh.get_all_targets(), targets);
-    }
-
-    #[test]
-    fn remove_target() {
-        let mut fh = Flexihash::new();
-        fh.add_target("t-a", 1);
-        fh.add_target("t-b", 1);
-        fh.add_target("t-c", 1);
-        fh.remove_target("t-b");
-
-        assert_eq!(fh.get_all_targets(), ["t-a", "t-c"]);
-    }
-
-    #[test]
-    #[should_panic(expected = "Target 'not-there' does not exist")]
-    fn remove_target_fails_on_missing_target() {
-        let mut fh = Flexihash::new();
-        fh.remove_target("not-there");
     }
 
     #[test]
