@@ -3,7 +3,7 @@ use crc::crc32;
 use md5;
 use std::collections::{BTreeMap, HashMap};
 
-pub type Position = String;
+pub type Position = u128;
 pub type Target = String;
 pub type Resource = String;
 
@@ -17,9 +17,9 @@ pub enum Hasher {
 pub fn hash<S: Into<String>>(hasher: &Hasher, value: S) -> Position {
     let value = value.into();
     return match hasher {
-        Hasher::Crc32 => format!("{:10}", crc32::checksum_ieee(value.as_bytes())),
-        Hasher::Md5 => format!("{:032x}", md5::compute(value)),
-        Hasher::Mock(val) => val.to_string(),
+        Hasher::Crc32 => crc32::checksum_ieee(value.as_bytes()) as u128,
+        Hasher::Md5 => u128::from_be_bytes(md5::compute(value).0),
+        Hasher::Mock(val) => u128::from_str_radix(val, 10).unwrap(),
     };
 }
 
@@ -31,25 +31,25 @@ mod test_hashers {
     fn test_md5() {
         assert_eq!(
             hash(&Hasher::Md5, "test"),
-            "098f6bcd4621d373cade4e832627b4f6"
+            u128::from_str_radix("098f6bcd4621d373cade4e832627b4f6", 16).unwrap()
         );
         assert_eq!(
             hash(&Hasher::Md5, "test"),
-            "098f6bcd4621d373cade4e832627b4f6"
+            u128::from_str_radix("098f6bcd4621d373cade4e832627b4f6", 16).unwrap()
         );
         assert_eq!(
             hash(&Hasher::Md5, "different"),
-            "29e4b66fa8076de4d7a26c727b8dbdfa"
+            u128::from_str_radix("29e4b66fa8076de4d7a26c727b8dbdfa", 16).unwrap()
         );
     }
 
     #[test]
     fn test_crc32() {
-        assert_eq!(hash(&Hasher::Crc32, String::from("test")), "3632233996");
-        assert_eq!(hash(&Hasher::Crc32, String::from("test")), "3632233996");
+        assert_eq!(hash(&Hasher::Crc32, String::from("test")), 3632233996);
+        assert_eq!(hash(&Hasher::Crc32, String::from("test")), 3632233996);
         assert_eq!(
             hash(&Hasher::Crc32, String::from("different")),
-            "1812431075"
+            1812431075
         );
     }
 }
@@ -125,7 +125,7 @@ mod test_formatting {
         let mut fh = Flexihash::new();
         fh.add_target("foo", 2);
         fh.add_target("bar", 4);
-        assert_eq!(fh.to_string(), "Flexihash([\"bar\", \"foo\"])");
+        assert_eq!(fh.to_string(), "Flexihash([\"foo\", \"bar\"])");
     }
 
     #[test]
