@@ -112,7 +112,9 @@ use std::fmt;
 
 impl fmt::Display for Flexihash {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Flexihash({:?})", self.target_to_positions.keys())
+        let mut keys: Vec<&Target> = self.target_to_positions.keys().collect();
+        keys.sort();
+        write!(f, "Flexihash({:?})", keys)
     }
 }
 
@@ -125,7 +127,7 @@ mod test_formatting {
         let mut fh = Flexihash::new();
         fh.add_target("foo", 2);
         fh.add_target("bar", 4);
-        assert_eq!(fh.to_string(), "Flexihash([\"foo\", \"bar\"])");
+        assert_eq!(fh.to_string(), "Flexihash([\"bar\", \"foo\"])");
     }
 
     #[test]
