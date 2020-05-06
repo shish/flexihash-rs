@@ -12,7 +12,7 @@ Usage Example
 ```
 use flexihash::Flexihash;
 
-let fh = Flexihash::new(None, None);
+let fh = Flexihash::new();
 
 // bulk add
 fh.add_targets(vec!['cache-1', 'cache-2', 'cache-3']);
