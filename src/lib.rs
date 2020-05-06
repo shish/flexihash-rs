@@ -1,4 +1,3 @@
-// #![feature(test)]
 use crc::crc32;
 use md5;
 use std::collections::{BTreeMap, HashMap};
@@ -47,31 +46,9 @@ mod test_hashers {
     fn test_crc32() {
         assert_eq!(hash(&Hasher::Crc32, String::from("test")), 3632233996);
         assert_eq!(hash(&Hasher::Crc32, String::from("test")), 3632233996);
-        assert_eq!(
-            hash(&Hasher::Crc32, String::from("different")),
-            1812431075
-        );
+        assert_eq!(hash(&Hasher::Crc32, String::from("different")), 1812431075);
     }
 }
-
-/*
-#[cfg(test)]
-mod hasher_benchmarks {
-    extern crate test;
-    use super::*;
-    use test::Bencher;
-
-    #[bench]
-    fn bench_crc32(b: &mut Bencher) {
-        b.iter(|| hash(&Hasher::Crc32, String::from("test")));
-    }
-
-    #[bench]
-    fn bench_md5(b: &mut Bencher) {
-        b.iter(|| hash(&Hasher::Md5, String::from("test")));
-    }
-}
-*/
 
 #[derive(Debug)]
 pub struct Flexihash {
@@ -595,104 +572,3 @@ mod test_lookups {
         assert_eq!(fh.lookup_list("resource", 3), ["t1"]);
     }
 }
-
-/*
-extern crate test;
-
-#[cfg(test)]
-mod lookup_list_bench {
-    use super::*;
-    use test::Bencher;
-
-    #[bench]
-    fn one_of_one(b: &mut Bencher) {
-        let mut fh = Flexihash::new();
-        fh.add_target("olive", 10);
-
-        b.iter(|| fh.lookup_list("foobar", 1));
-    }
-
-    #[bench]
-    fn one_of_two(b: &mut Bencher) {
-        let mut fh = Flexihash::new();
-        fh.add_target("olive", 10);
-        fh.add_target("acacia", 10);
-
-        b.iter(|| fh.lookup_list("foobar", 1));
-    }
-
-    #[bench]
-    fn two_of_two(b: &mut Bencher) {
-        let mut fh = Flexihash::new();
-        fh.add_target("olive", 10);
-        fh.add_target("acacia", 10);
-
-        b.iter(|| fh.lookup_list("foobar", 2));
-    }
-
-    #[bench]
-    fn three_of_two(b: &mut Bencher) {
-        let mut fh = Flexihash::new();
-        fh.add_target("olive", 10);
-        fh.add_target("acacia", 10);
-
-        b.iter(|| fh.lookup_list("foobar", 3));
-    }
-}
-
-#[cfg(test)]
-mod flexihash_bench {
-    use super::*;
-    use test::Bencher;
-
-    #[bench]
-    fn init(b: &mut Bencher) {
-        b.iter(|| {
-            Flexihash::new()
-        });
-    }
-}
-
-#[cfg(test)]
-mod add_target_bench {
-    use super::*;
-    use test::Bencher;
-
-    #[bench]
-    fn one(b: &mut Bencher) {
-        b.iter(|| {
-            let mut fh = Flexihash::new();
-            fh.add_target("olive", 10);
-        });
-    }
-
-    #[bench]
-    fn two(b: &mut Bencher) {
-        b.iter(|| {
-            let mut fh = Flexihash::new();
-            fh.add_target("olive", 10);
-            fh.add_target("acacia", 10);
-        });
-    }
-
-    #[bench]
-    fn three(b: &mut Bencher) {
-        b.iter(|| {
-            let mut fh = Flexihash::new();
-            fh.add_target("olive", 10);
-            fh.add_target("acacia", 10);
-            fh.add_target("rose", 10);
-        });
-    }
-
-    #[bench]
-    fn many(b: &mut Bencher) {
-        b.iter(|| {
-            let mut fh = Flexihash::new();
-            for n in 0..10 {
-                fh.add_target(format!("olive{}", n), 10);
-            }
-        });
-    }
-}
-*/
