@@ -13,6 +13,30 @@ pub enum Hasher {
     Mock(String),
 }
 
+/// # Examples
+///
+/// ```
+/// use flexihash::{hash, Hasher};
+/// 
+/// // MD5
+/// assert_eq!(
+///     hash(&Hasher::Md5, "test"),
+///     u128::from_str_radix("098f6bcd4621d373cade4e832627b4f6", 16).unwrap()
+/// );
+/// assert_eq!(
+///     hash(&Hasher::Md5, "test"),
+///     u128::from_str_radix("098f6bcd4621d373cade4e832627b4f6", 16).unwrap()
+/// );
+/// assert_eq!(
+///     hash(&Hasher::Md5, "different"),
+///     u128::from_str_radix("29e4b66fa8076de4d7a26c727b8dbdfa", 16).unwrap()
+/// );
+/// 
+/// // CRC32
+/// assert_eq!(hash(&Hasher::Crc32, String::from("test")), 3632233996);
+/// assert_eq!(hash(&Hasher::Crc32, String::from("test")), 3632233996);
+/// assert_eq!(hash(&Hasher::Crc32, String::from("different")), 1812431075);
+/// ```
 pub fn hash<S: Into<String>>(hasher: &Hasher, value: S) -> Position {
     let value = value.into();
     return match hasher {
@@ -20,34 +44,6 @@ pub fn hash<S: Into<String>>(hasher: &Hasher, value: S) -> Position {
         Hasher::Md5 => u128::from_be_bytes(md5::compute(value).0),
         Hasher::Mock(val) => u128::from_str_radix(val, 10).unwrap(),
     };
-}
-
-#[cfg(test)]
-mod test_hashers {
-    use super::*;
-
-    #[test]
-    fn test_md5() {
-        assert_eq!(
-            hash(&Hasher::Md5, "test"),
-            u128::from_str_radix("098f6bcd4621d373cade4e832627b4f6", 16).unwrap()
-        );
-        assert_eq!(
-            hash(&Hasher::Md5, "test"),
-            u128::from_str_radix("098f6bcd4621d373cade4e832627b4f6", 16).unwrap()
-        );
-        assert_eq!(
-            hash(&Hasher::Md5, "different"),
-            u128::from_str_radix("29e4b66fa8076de4d7a26c727b8dbdfa", 16).unwrap()
-        );
-    }
-
-    #[test]
-    fn test_crc32() {
-        assert_eq!(hash(&Hasher::Crc32, String::from("test")), 3632233996);
-        assert_eq!(hash(&Hasher::Crc32, String::from("test")), 3632233996);
-        assert_eq!(hash(&Hasher::Crc32, String::from("different")), 1812431075);
-    }
 }
 
 #[derive(Debug)]
@@ -88,6 +84,23 @@ impl Flexihash {
 use std::fmt;
 
 impl fmt::Display for Flexihash {
+    /// # Examples
+    /// 
+    /// to_string:
+    /// ```
+    /// let mut fh = flexihash::Flexihash::new();
+    /// fh.add_target("foo", 2);
+    /// fh.add_target("bar", 4);
+    /// assert_eq!(fh.to_string(), "Flexihash([\"bar\", \"foo\"])");
+    /// ```
+    /// 
+    /// debug:
+    /// ```
+    /// let mut fh = flexihash::Flexihash::new();
+    /// fh.add_target("foo", 2);
+    /// fh.add_target("bar", 4);
+    /// assert_eq!(format!("{:?}", fh).to_string().len() > 10, true);
+    /// ```
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut keys: Vec<&Target> = self.target_to_positions.keys().collect();
         keys.sort();
@@ -95,31 +108,26 @@ impl fmt::Display for Flexihash {
     }
 }
 
-#[cfg(test)]
-mod test_formatting {
-    use super::*;
-
-    #[test]
-    fn to_string() {
-        let mut fh = Flexihash::new();
-        fh.add_target("foo", 2);
-        fh.add_target("bar", 4);
-        assert_eq!(fh.to_string(), "Flexihash([\"bar\", \"foo\"])");
-    }
-
-    #[test]
-    fn debug() {
-        let mut fh = Flexihash::new();
-        fh.add_target("foo", 2);
-        fh.add_target("bar", 4);
-        assert_eq!(format!("{:?}", fh).to_string().len() > 10, true);
-    }
-}
-
 /*
  * Add / remove targets
  */
 impl Flexihash {
+    /// # Examples
+    /// ```
+    /// let mut fh = flexihash::Flexihash::new();
+    /// fh.add_target("t-a", 1);
+    /// fh.add_target("t-b", 1);
+    /// fh.add_target("t-c", 1);
+    /// 
+    /// assert_eq!(fh.get_all_targets(), ["t-a", "t-b", "t-c"]);
+    /// ```
+    /// 
+    /// You shouldn't add the same target multiple times:
+    /// ```should_panic
+    /// let mut fh = flexihash::Flexihash::new();
+    /// fh.add_target("t-a", 1);
+    /// fh.add_target("t-a", 1);
+    /// ```
     pub fn add_target<S: Into<String>>(&mut self, target: S, weight: u32) -> &Flexihash {
         let target = target.into();
         if self.target_to_positions.contains_key(&target) {
@@ -142,6 +150,14 @@ impl Flexihash {
         return self;
     }
 
+    /// # Examples
+    /// ```
+    /// let mut fh = flexihash::Flexihash::new();
+    /// 
+    /// let targets = vec!["t-a", "t-b", "t-c"];
+    /// fh.add_targets(targets.clone());
+    /// assert_eq!(fh.get_all_targets(), targets);
+    /// ```
     pub fn add_targets<S: Into<String>>(&mut self, targets: Vec<S>) -> &Flexihash {
         for target in targets {
             self.add_target(target, 1);
@@ -149,6 +165,22 @@ impl Flexihash {
         return self;
     }
 
+    /// # Examples
+    /// ```
+    /// let mut fh = flexihash::Flexihash::new();
+    /// fh.add_target("t-a", 1);
+    /// fh.add_target("t-b", 1);
+    /// fh.add_target("t-c", 1);
+    /// fh.remove_target("t-b");
+    ///
+    /// assert_eq!(fh.get_all_targets(), ["t-a", "t-c"]);
+    /// ```
+    /// 
+    /// Don't remove targets that aren't there though:
+    /// ```should_panic
+    /// let mut fh = flexihash::Flexihash::new();
+    /// fh.remove_target("not-there");
+    /// ```
     pub fn remove_target<S: Into<String>>(&mut self, target: S) -> &Flexihash {
         let target = target.into();
         if let Some(position_list) = self.target_to_positions.get(target.as_str()) {
@@ -167,6 +199,11 @@ impl Flexihash {
         return self;
     }
 
+    /// # Examples
+    /// ```
+    /// let fh = flexihash::Flexihash::new();
+    /// assert_eq!(fh.get_all_targets().len(), 0);
+    /// ```
     pub fn get_all_targets(&self) -> Vec<Target> {
         let mut targets = Vec::new();
         for (k, _) in self.target_to_positions.iter() {
@@ -174,62 +211,6 @@ impl Flexihash {
         }
         targets.sort();
         return targets;
-    }
-}
-
-#[cfg(test)]
-mod test_add_remove {
-    use super::*;
-
-    #[test]
-    fn get_all_targets_empty() {
-        let fh = Flexihash::new();
-        assert_eq!(fh.get_all_targets().len(), 0);
-    }
-
-    #[test]
-    #[should_panic]
-    fn add_target_throws_exception_on_duplicate_target() {
-        let mut fh = Flexihash::new();
-        fh.add_target("t-a", 1);
-        fh.add_target("t-a", 1);
-    }
-
-    #[test]
-    fn add_target_and_get_all_targets() {
-        let mut fh = Flexihash::new();
-        fh.add_target("t-a", 1);
-        fh.add_target("t-b", 1);
-        fh.add_target("t-c", 1);
-
-        assert_eq!(fh.get_all_targets(), ["t-a", "t-b", "t-c"]);
-    }
-
-    #[test]
-    fn add_targets_and_get_all_targets() {
-        let targets = vec!["t-a", "t-b", "t-c"];
-
-        let mut fh = Flexihash::new();
-        fh.add_targets(targets.clone());
-        assert_eq!(fh.get_all_targets(), targets);
-    }
-
-    #[test]
-    fn remove_target() {
-        let mut fh = Flexihash::new();
-        fh.add_target("t-a", 1);
-        fh.add_target("t-b", 1);
-        fh.add_target("t-c", 1);
-        fh.remove_target("t-b");
-
-        assert_eq!(fh.get_all_targets(), ["t-a", "t-c"]);
-    }
-
-    #[test]
-    #[should_panic(expected = "Target 'not-there' does not exist")]
-    fn remove_target_fails_on_missing_target() {
-        let mut fh = Flexihash::new();
-        fh.remove_target("not-there");
     }
 }
 
