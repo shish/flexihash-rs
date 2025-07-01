@@ -1,4 +1,3 @@
-use crc::crc32;
 use md5;
 use std::collections::{BTreeMap, HashMap};
 
@@ -13,10 +12,12 @@ pub enum Hasher {
     Mock(String),
 }
 
+pub const CRC32: crc::Crc<u32> = crc::Crc::<u32>::new(&crc::CRC_32_ISO_HDLC);
+
 pub fn hash<S: Into<String>>(hasher: &Hasher, value: S) -> Position {
     let value = value.into();
     return match hasher {
-        Hasher::Crc32 => crc32::checksum_ieee(value.as_bytes()) as u128,
+        Hasher::Crc32 => CRC32.checksum(value.as_bytes()) as u128,
         Hasher::Md5 => u128::from_be_bytes(md5::compute(value).0),
         Hasher::Mock(val) => u128::from_str_radix(val, 10).unwrap(),
     };
